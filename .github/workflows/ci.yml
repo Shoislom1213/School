@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Install Clang-Format
         run: sudo apt install clang-format -y
       - name: Run Clang-Format
@@ -22,6 +24,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -37,6 +41,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Compile
         run: |
           mkdir -p build
@@ -48,10 +54,14 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Install Valgrind
         run: sudo apt install valgrind -y
       - name: Run Valgrind
-        run: valgrind --leak-check=full --error-exitcode=1 ./build/program < test-ci.txt
+        run: |
+          gcc -g -o build/program src/*.c
+          valgrind --leak-check=full --error-exitcode=1 ./build/program < test-ci.txt
 
   sanitizer:
     name: Run Address & Leak Sanitizer
@@ -59,9 +69,11 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Run with ASAN & LSAN
         run: |
-          gcc -fsanitize=address,leak -o build/program src/*.c
+          gcc -fsanitize=address,leak -g -o build/program src/*.c
           ./build/program < test-ci.txt
 
   ai-test:
@@ -69,6 +81,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -84,11 +98,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install lcov
+        run: sudo apt install lcov -y
       - name: Run Coverage
         run: |
-          sudo apt install lcov -y
+          mkdir -p build
           gcc --coverage -o build/program src/*.c
-          ./build/program < test-ci.txt
+          ./build/program < test-ci.txt || true
           gcov src/*.c
           lcov --capture --directory . --output-file coverage.info
       - name: Upload coverage
@@ -102,6 +120,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
       - name: Install Trivy
         run: |
           sudo apt-get install wget -y
