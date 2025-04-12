@@ -12,12 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Install Clang-Format
         run: sudo apt-get update && sudo apt-get install clang-format -y
       - name: Run Clang-Format
         run: |
-          find src/ -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror
+          if [ -d "src/" ]; then
+            find src/ -name "*.c" -o -name "*.h" | xargs clang-format --dry-run --Werror
+          else
+            echo "src/ directory not found, skipping C linting."
+          fi
 
   lint-python:
     name: Python Lint
@@ -25,7 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -46,14 +50,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Clean Build Directory
         run: |
           rm -rf build/
           mkdir build
       - name: Compile
         run: |
-          gcc -Wall -Wextra -Werror -o build/program src/*.c
+          if [ -d "src/" ]; then
+            gcc -Wall -Wextra -Werror -o build/program src/*.c
+          else
+            echo "src/ directory not found, skipping build."
+            exit 1
+          fi
 
   valgrind:
     name: Run Valgrind
@@ -62,13 +71,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Install Valgrind
         run: sudo apt-get update && sudo apt-get install valgrind -y
       - name: Run Valgrind
         run: |
-          gcc -g -o build/program src/*.c
           if [ -f "test-ci.txt" ]; then
+            gcc -g -o build/program src/*.c
             valgrind --leak-check=full --error-exitcode=1 ./build/program < test-ci.txt
           else
             echo "test-ci.txt not found, skipping Valgrind tests."
@@ -81,11 +90,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Run with ASAN & LSAN
         run: |
-          gcc -fsanitize=address,leak -g -o build/program src/*.c
           if [ -f "test-ci.txt" ]; then
+            gcc -fsanitize=address,leak -g -o build/program src/*.c
             ./build/program < test-ci.txt
           else
             echo "test-ci.txt not found, skipping sanitizer tests."
@@ -97,7 +106,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
@@ -118,19 +127,19 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Install lcov
         run: sudo apt-get update && sudo apt-get install lcov -y
       - name: Run Coverage
         run: |
-          mkdir -p build
-          gcc --coverage -o build/program src/*.c
-          if [ -f "test-ci.txt" ]; then
+          if [ -d "src/" ] && [ -f "test-ci.txt" ]; then
+            mkdir -p build
+            gcc --coverage -o build/program src/*.c
             ./build/program < test-ci.txt || true
             gcov src/*.c
             lcov --capture --directory . --output-file coverage.info
           else
-            echo "test-ci.txt not found, skipping coverage."
+            echo "src/ directory or test-ci.txt not found, skipping coverage."
           fi
       - name: Upload coverage
         uses: actions/upload-artifact@v3
@@ -144,7 +153,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - name: Run Trivy on Source
         run: |
           if [ -d "src/" ]; then
