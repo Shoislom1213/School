@@ -152,6 +152,12 @@ jobs:
           else
             echo "src/ directory or test-ci.txt not found, skipping coverage."
           fi
+      - name: Check coverage file
+        run: |
+          if [ ! -f "coverage.info" ]; then
+            echo "coverage.info not found, skipping upload."
+            exit 1
+          fi
       - name: Upload coverage
         uses: actions/upload-artifact@v3
         with:
