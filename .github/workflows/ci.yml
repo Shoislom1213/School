@@ -37,15 +37,18 @@ jobs:
           flake8 ai_module/
 
   build:
-    name: Build C project
+    name: Build C Project
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Clean Build Directory
+        run: |
+          rm -rf build/
+          mkdir build
       - name: Compile
         run: |
-          mkdir -p build
           gcc -Wall -Wextra -Werror -o build/program src/*.c
 
   valgrind:
@@ -127,7 +130,7 @@ jobs:
           sudo apt-get install wget -y
           wget https://github.com/aquasecurity/trivy/releases/download/v0.52.1/trivy_0.52.1_Linux-64bit.deb -O trivy.deb
           sudo dpkg -i trivy.deb
-      - name: Run Trivy on source
+      - name: Run Trivy on Source
         run: |
           trivy fs --scanners vuln src/
           trivy fs --scanners vuln ai_module/
