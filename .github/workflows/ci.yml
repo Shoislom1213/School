@@ -58,7 +58,10 @@ jobs:
       - name: Compile
         run: |
           if [ -d "src/" ]; then
-            gcc -Wall -Wextra -Werror -o build/program src/*.c
+            for file in src/*.c; do
+              program_name=$(basename "$file" .c)
+              gcc -Wall -Wextra -Werror -o build/$program_name $file -lm
+            done
           else
             echo "src/ directory not found, skipping build."
             exit 1
@@ -77,8 +80,11 @@ jobs:
       - name: Run Valgrind
         run: |
           if [ -f "test-ci.txt" ]; then
-            gcc -g -o build/program src/*.c
-            valgrind --leak-check=full --error-exitcode=1 ./build/program < test-ci.txt
+            for file in src/*.c; do
+              program_name=$(basename "$file" .c)
+              gcc -g -o build/$program_name $file -lm
+              valgrind --leak-check=full --error-exitcode=1 ./build/$program_name < test-ci.txt
+            done
           else
             echo "test-ci.txt not found, skipping Valgrind tests."
           fi
@@ -94,8 +100,11 @@ jobs:
       - name: Run with ASAN & LSAN
         run: |
           if [ -f "test-ci.txt" ]; then
-            gcc -fsanitize=address,leak -g -o build/program src/*.c
-            ./build/program < test-ci.txt
+            for file in src/*.c; do
+              program_name=$(basename "$file" .c)
+              gcc -fsanitize=address,leak -g -o build/$program_name $file -lm
+              ./build/$program_name < test-ci.txt
+            done
           else
             echo "test-ci.txt not found, skipping sanitizer tests."
           fi
@@ -134,9 +143,11 @@ jobs:
         run: |
           if [ -d "src/" ] && [ -f "test-ci.txt" ]; then
             mkdir -p build
-            gcc --coverage -o build/program src/*.c
-            ./build/program < test-ci.txt || true
-            gcov src/*.c
+            for file in src/*.c; do
+              program_name=$(basename "$file" .c)
+              gcc --coverage -o build/$program_name $file -lm
+              ./build/$program_name < test-ci.txt || true
+            done
             lcov --capture --directory . --output-file coverage.info
           else
             echo "src/ directory or test-ci.txt not found, skipping coverage."
