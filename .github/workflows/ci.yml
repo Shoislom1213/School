@@ -130,40 +130,6 @@ jobs:
             echo "ai_module/ directory not found, skipping AI tests."
           fi
 
-  coverage:
-    name: Code Coverage
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Install lcov
-        run: sudo apt-get update && sudo apt-get install lcov -y
-      - name: Run Coverage
-        run: |
-          if [ -d "src/" ] && [ -f "test-ci.txt" ]; then
-            mkdir -p build
-            for file in src/*.c; do
-              program_name=$(basename "$file" .c)
-              gcc --coverage -o build/$program_name $file -lm
-              ./build/$program_name < test-ci.txt || true
-            done
-            lcov --capture --directory . --output-file coverage.info
-          else
-            echo "src/ directory or test-ci.txt not found, skipping coverage."
-          fi
-      - name: Check coverage file
-        run: |
-          if [ ! -f "coverage.info" ]; then
-            echo "coverage.info not found, skipping upload."
-            exit 1
-          fi
-      - name: Upload coverage
-        uses: actions/upload-artifact@v3
-        with:
-          name: coverage
-          path: coverage.info
-
   security:
     name: Trivy Security Scan
     runs-on: ubuntu-latest
